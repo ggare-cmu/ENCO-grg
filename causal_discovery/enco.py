@@ -40,7 +40,9 @@ class ENCO(object):
                  theta_only_iters=1000,
                  max_graph_stacking=200,
                  sample_size_obs=5000,
-                 sample_size_inters=200):
+                 sample_size_inters=200,
+                 apply_adj_matrix_mask = False #Added by GRG
+                ):
         """
         Creates ENCO object for performing causal structure learning.
 
@@ -119,6 +121,11 @@ class ENCO(object):
         obs_dataset = ObservationalCategoricalData(graph, dataset_size=sample_size_obs)
         obs_data_loader = data.DataLoader(obs_dataset, batch_size=batch_size,
                                           shuffle=True, drop_last=True)
+
+        #GRG
+        self.apply_adj_matrix_mask = apply_adj_matrix_mask
+
+
         # Create neural networks for fitting the conditional distributions
         if graph.is_categorical:
             num_categs = max([v.prob_dist.num_categs for v in graph.variables])
@@ -169,15 +176,28 @@ class ENCO(object):
         """
         Initializes gamma and theta parameters, including their optimizers.
         """
-        self.gamma = nn.Parameter(torch.zeros(num_vars, num_vars))  # Init with zero => prob 0.5
+        # self.gamma = nn.Parameter(torch.zeros(num_vars, num_vars))  # Init with zero => prob 0.5
+        self.gamma = nn.Parameter(torch.zeros(num_vars, num_vars, dtype=torch.float64))  # Init with zero => prob 0.5 #GRG-change
         self.gamma.data[torch.arange(num_vars), torch.arange(num_vars)] = -9e15  # Mask diagonal
+
+        if self.apply_adj_matrix_mask:
+            adj_matrix_mask = self.graph.adj_matrix_mask
+            # self.gamma.data[adj_matrix_mask] = -9e15  # Mask where mask value is 1 
+            self.gamma.data[np.where(adj_matrix_mask)] = -9e15  # Mask where mask value is 1 
+
+            print(f"[GRG] Applying adj_matrix_mask:\n {adj_matrix_mask*1}")
+            # print(f"[GRG] self.gamma post masking: {self.gamma.data}")
+            print(f"[GRG] masked self.gamma:\n {1*(self.gamma.data != 0)}")
+
+
         # For latent confounders, we need to track interventional and observational gradients separat => different opt
         if self.graph.num_latents > 0:
             self.gamma_optimizer = AdamGamma(self.gamma, lr=lr_gamma, beta1=betas_gamma[0], beta2=betas_gamma[1])
         else:
             self.gamma_optimizer = torch.optim.Adam([self.gamma], lr=lr_gamma, betas=betas_gamma)
 
-        self.theta = nn.Parameter(torch.zeros(num_vars, num_vars))  # Init with zero => prob 0.5
+        # self.theta = nn.Parameter(torch.zeros(num_vars, num_vars))  # Init with zero => prob 0.5
+        self.theta = nn.Parameter(torch.zeros(num_vars, num_vars, dtype=torch.float64))  # Init with zero => prob 0.5 #GRG-change
         self.theta_optimizer = AdamTheta(self.theta, lr=lr_theta, beta1=betas_theta[0], beta2=betas_theta[1])
 
     def discover_graph(self, num_epochs=30, stop_early=False):
@@ -220,6 +240,11 @@ class ENCO(object):
             if hasattr(t, "set_description"):
                 t.set_description("Model update loop, loss: %4.2f" % loss)
 
+    def predict_using_graph(self, dataloader, adj_matrices, num_classes, logger):
+
+        self.distribution_fitting_module.pred_step(dataloader, adj_matrices, num_classes, logger)
+
+
     def graph_fitting_step(self):
         """
         Performs on iteration of graph fitting.
@@ -234,12 +259,27 @@ class ENCO(object):
             theta_mask, var_idx = self.graph_fitting_module.perform_update_step(self.gamma,
                                                                                 self.theta,
                                                                                 only_theta=only_theta)
+
+            #GRG: Temp fix - debugging:
+            gamma_copy = self.gamma.clone()
+            theta_copy = self.theta.clone()
+
             if not only_theta:  # In the gamma freezing stages, we do not update gamma
                 if isinstance(self.gamma_optimizer, AdamGamma):
                     self.gamma_optimizer.step(var_idx)
                 else:
                     self.gamma_optimizer.step()
             self.theta_optimizer.step(theta_mask)
+
+            #GRG: Temp fix for values going to NaN
+            if torch.any(torch.isnan(self.gamma)):
+                # self.gamma = torch.nan_to_num(self.gamma, nan = -9e15)
+                self.gamma = torch.where(torch.isnan(self.gamma), gamma_copy, self.gamma)
+                print(f"Error! NaN value encountered in self.gamma - reverting to previous value.")
+            if torch.any(torch.isnan(self.theta)):
+                # self.theta = torch.nan_to_num(self.theta, nan = 0)
+                self.theta = torch.where(torch.isnan(self.theta), theta_copy, self.theta)
+                print(f"Error! NaN value encountered in self.theta - reverting to previous value.")
 
     def get_binary_adjmatrix(self):
         """

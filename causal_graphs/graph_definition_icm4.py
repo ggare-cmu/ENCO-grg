@@ -244,19 +244,12 @@ class CausalDAGDataset(CausalDAG):
         # if data_int.dtype in [np.uint8, np.int16]:
         #     data_int = data_int.astype(np.int32)
         
-
-        # #GRG - Normalize features
-        # Normalize_Data = True
-        # if Normalize_Data:
-        #     # X = 100*((X - X.min(0))/(X.max(0) - X.min(0)))
-        #     data_obs[:, :-len(class_list)] = (data_obs[:, :-len(class_list)] - data_obs[:, :-len(class_list)].min(0))/(data_obs[:, :-len(class_list)].max(0) - data_obs[:, :-len(class_list)].min(0))
-
-        # # #GRG
+        # #GRG
         # data_obs[:, :-len(class_list)] = 100.0*data_obs[:, :-len(class_list)]
 
-        # #GRG
-        # data_obs = data_obs.astype(np.int32)
-        # data_int = data_int.astype(np.int32)
+        #GRG
+        data_obs = data_obs.astype(np.int32)
+        data_int = data_int.astype(np.int32)
 
         # features_list = vars_list.tolist() + class_list.tolist()
 

@@ -6,6 +6,32 @@ from networkx.drawing.nx_pydot import graphviz_layout
 import matplotlib.pyplot as plt
 
 
+
+def visualize_graph_with_relabeling(graph, mapping, **kwargs):
+    """
+    Visualizes a CausalDAG object.
+
+    Parameters
+    ----------
+    graph : CausalDAG
+            The graph to visualize
+    **kwargs : dict
+               Additional arguments to pass to 'graph_to_image' or plt.figure
+    """
+    G = nx.DiGraph()
+    G.add_nodes_from([v.name for v in graph.variables])
+    edges = [[graph.variables[v_idx].name for v_idx in e] for e in graph.edges.tolist()]
+    G.add_edges_from(edges)
+    
+    H = nx.relabel_nodes(G, mapping)
+
+    # graph_to_image(G, **kwargs)
+    graph_to_image(H, **kwargs)
+
+    return H
+
+
+
 def visualize_graph(graph, **kwargs):
     """
     Visualizes a CausalDAG object.

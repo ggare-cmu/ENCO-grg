@@ -95,11 +95,6 @@ def get_basic_parser():
     parser.add_argument('--max_inters', type=int, default=-1,
                         help='Number of variables to provide interventional data for. If smaller'
                              ' than zero, interventions on all variables will be used.')
-    #GRG
-    parser.add_argument('--apply_adj_matrix_mask', action='store_true',
-                        help='If True, the input dataset adj_matrix_mask will be applied while discoverying the causal graph.')
-
-                             
     return parser
 
 
@@ -155,8 +150,7 @@ def test_graph(graph, args, checkpoint_dir, file_id):
                             theta_only_iters=args.theta_only_iters,
                             max_graph_stacking=args.max_graph_stacking,
                             sample_size_obs=args.sample_size_obs,
-                            sample_size_inters=args.sample_size_inters,
-                            apply_adj_matrix_mask=args.apply_adj_matrix_mask #GRG
+                            sample_size_inters=args.sample_size_inters
                             )
     discovery_module.to(get_device())
     start_time = time.time()
@@ -206,22 +200,19 @@ def test_graph(graph, args, checkpoint_dir, file_id):
 
 
         #Relabel nodes
-        if hasattr(discovery_module.graph, 'node_names_mapping'):
-            mapping = discovery_module.graph.node_names_mapping
-        else:
-            mapping = {
-                "$X_{1}$": "a0", "$X_{2}$": "a1", "$X_{3}$": "a2", "$X_{4}$": "a3", "$X_{5}$": "a4",
-                "$X_{6}$": "b0", "$X_{7}$": "b1", "$X_{8}$": "b2", "$X_{9}$": "b3", "$X_{10}$": "b4",
-                "$X_{11}$": "bo0", "$X_{12}$": "bo1", "$X_{13}$": "bo2",
-                "$X_{14}$": "pt0", "$X_{15}$": "pt1", "$X_{16}$": "pt2", "$X_{17}$": "pt3",
-                "$X_{18}$": "pl0", "$X_{19}$": "pl1", "$X_{20}$": "pl2",
-                "$X_{21}$": "i0", "$X_{22}$": "i1", "$X_{23}$": "i2", "$X_{24}$": "i3", "$X_{25}$": "i4",
-                "$X_{26}$": "pb0", "$X_{27}$": "pb1", "$X_{28}$": "pb2", "$X_{29}$": "pb3", "$X_{30}$": "pb4",
-                "$X_{31}$": "c0", "$X_{32}$": "c1", "$X_{33}$": "c2", "$X_{34}$": "c3", "$X_{35}$": "c4",
-                "$X_{36}$": "e0", "$X_{37}$": "e1", "$X_{38}$": "e2",
-                # "$X_{39}$": "s0", "$X_{40}$": "s1", "$X_{41}$": "s2", "$X_{42}$": "s3" #Severity classes
-                "$X_{39}$": "d0", "$X_{40}$": "d1", "$X_{41}$": "d2", "$X_{42}$": "d3", "$X_{43}$": "d4", "$X_{44}$": "d5", "$X_{45}$": "d6" #Disease classes
-            }
+        mapping = {
+            "$X_{1}$": "a0", "$X_{2}$": "a1", "$X_{3}$": "a2", "$X_{4}$": "a3", "$X_{5}$": "a4",
+            "$X_{6}$": "b0", "$X_{7}$": "b1", "$X_{8}$": "b2", "$X_{9}$": "b3", "$X_{10}$": "b4",
+            "$X_{11}$": "bo0", "$X_{12}$": "bo1", "$X_{13}$": "bo2",
+            "$X_{14}$": "pt0", "$X_{15}$": "pt1", "$X_{16}$": "pt2", "$X_{17}$": "pt3",
+            "$X_{18}$": "pl0", "$X_{19}$": "pl1", "$X_{20}$": "pl2",
+            "$X_{21}$": "i0", "$X_{22}$": "i1", "$X_{23}$": "i2", "$X_{24}$": "i3", "$X_{25}$": "i4",
+            "$X_{26}$": "pb0", "$X_{27}$": "pb1", "$X_{28}$": "pb2", "$X_{29}$": "pb3", "$X_{30}$": "pb4",
+            "$X_{31}$": "c0", "$X_{32}$": "c1", "$X_{33}$": "c2", "$X_{34}$": "c3", "$X_{35}$": "c4",
+            "$X_{36}$": "e0", "$X_{37}$": "e1", "$X_{38}$": "e2",
+            # "$X_{39}$": "s0", "$X_{40}$": "s1", "$X_{41}$": "s2", "$X_{42}$": "s3" #Severity classes
+            "$X_{39}$": "d0", "$X_{40}$": "d1", "$X_{41}$": "d2", "$X_{42}$": "d3", "$X_{43}$": "d4", "$X_{44}$": "d5", "$X_{45}$": "d6" #Disease classes
+        }
 
         pred_graph = visualize_graph_with_relabeling(pred_graph, mapping,
                         filename=os.path.join(checkpoint_dir, "graph_%s_prediction.pdf" % (file_id)),
@@ -258,73 +249,41 @@ def test_graph(graph, args, checkpoint_dir, file_id):
 
         # logger.log(f"Found {len(severity_correlated_nodes)} severity_correlated_nodes = {severity_correlated_nodes}")
 
-        if hasattr(discovery_module.graph, 'class_list'):
-            class_list = discovery_module.graph.class_list
+        d0_edges = [i for i in pred_graph.edges if 'd0' in str(i)]
+        d1_edges = [i for i in pred_graph.edges if 'd1' in str(i)]
+        d2_edges = [i for i in pred_graph.edges if 'd2' in str(i)]
+        d3_edges = [i for i in pred_graph.edges if 'd3' in str(i)]
+        d4_edges = [i for i in pred_graph.edges if 'd4' in str(i)]
+        d5_edges = [i for i in pred_graph.edges if 'd5' in str(i)]
+        d6_edges = [i for i in pred_graph.edges if 'd6' in str(i)]
+        
+        disease_correlated_nodes = []
 
-            class_edges = {}
-            for cls in class_list:
-                class_edges[cls] = [i for i in pred_graph.edges if cls in str(i)]
-                logger.log(f"class {cls} edges = {class_edges[cls]}")
-            
-            # class_edges_list = np.vstack(list(class_edges.values())).tolist()
-            class_edges_list = np.vstack([v for v in class_edges.values() if len(v) > 0])
+        for a, b in d0_edges + d1_edges + d2_edges + d3_edges + d4_edges + d5_edges + d6_edges:
 
+            if a != 'd0' and a != 'd1' and a != 'd2' and a != 'd3' and a != 'd4' and a != 'd5' and a != 'd6':
+                disease_correlated_nodes.append(a)
+            elif b != 'd0' and b != 'd1' and b != 'd2' and b != 'd3' and b != 'd4' and b != 'd5' and b != 'd6':
+                disease_correlated_nodes.append(b)
+            else:
+                print(f"Error! Detected edge between severity {(a,b)}")
+                # raise Exception(f"Error! Detected edge between severity {(a,b)}")
 
-            class_correlated_nodes = []
-            for a, b in class_edges_list:
+        disease_correlated_nodes = np.unique(disease_correlated_nodes).tolist()
 
-                if a not in class_list:
-                    class_correlated_nodes.append(a)
-                elif b not in class_list:
-                    class_correlated_nodes.append(b)
-                else:
-                    print(f"Error! Detected edge between classes {(a,b)}")
-                    # raise Exception(f"Error! Detected edge between severity {(a,b)}")
+        logger.log(f"disease-0 edges = {d0_edges}")
+        logger.log(f"disease-1 edges = {d1_edges}")
+        logger.log(f"disease-2 edges = {d2_edges}")
+        logger.log(f"disease-3 edges = {d3_edges}")
+        logger.log(f"disease-4 edges = {d4_edges}")
+        logger.log(f"disease-5 edges = {d5_edges}")
+        logger.log(f"disease-6 edges = {d6_edges}")
 
-            class_correlated_nodes = np.unique(class_correlated_nodes).tolist()
-
-            logger.log(f"Found {len(class_correlated_nodes)} class_correlated_nodes = {class_correlated_nodes}")
-
-        else:
-
-            d0_edges = [i for i in pred_graph.edges if 'd0' in str(i)]
-            d1_edges = [i for i in pred_graph.edges if 'd1' in str(i)]
-            d2_edges = [i for i in pred_graph.edges if 'd2' in str(i)]
-            d3_edges = [i for i in pred_graph.edges if 'd3' in str(i)]
-            d4_edges = [i for i in pred_graph.edges if 'd4' in str(i)]
-            d5_edges = [i for i in pred_graph.edges if 'd5' in str(i)]
-            d6_edges = [i for i in pred_graph.edges if 'd6' in str(i)]
-            
-            disease_correlated_nodes = []
-
-            for a, b in d0_edges + d1_edges + d2_edges + d3_edges + d4_edges + d5_edges + d6_edges:
-
-                if a != 'd0' and a != 'd1' and a != 'd2' and a != 'd3' and a != 'd4' and a != 'd5' and a != 'd6':
-                    disease_correlated_nodes.append(a)
-                elif b != 'd0' and b != 'd1' and b != 'd2' and b != 'd3' and b != 'd4' and b != 'd5' and b != 'd6':
-                    disease_correlated_nodes.append(b)
-                else:
-                    print(f"Error! Detected edge between severity {(a,b)}")
-                    # raise Exception(f"Error! Detected edge between severity {(a,b)}")
-
-            disease_correlated_nodes = np.unique(disease_correlated_nodes).tolist()
-
-            logger.log(f"disease-0 edges = {d0_edges}")
-            logger.log(f"disease-1 edges = {d1_edges}")
-            logger.log(f"disease-2 edges = {d2_edges}")
-            logger.log(f"disease-3 edges = {d3_edges}")
-            logger.log(f"disease-4 edges = {d4_edges}")
-            logger.log(f"disease-5 edges = {d5_edges}")
-            logger.log(f"disease-6 edges = {d6_edges}")
-
-            logger.log(f"Found {len(disease_correlated_nodes)} disease_correlated_nodes = {disease_correlated_nodes}")
+        logger.log(f"Found {len(disease_correlated_nodes)} disease_correlated_nodes = {disease_correlated_nodes}")
 
         logger.close()
 
     
-    
-    from causal_graphs.graph_utils import sort_graph_by_vars
-    sort_graph_by_vars(graph.variables, adj_matrix = acyclic_matrix)
 
     # Save parameters and model if wanted
     state_dict = discovery_module.get_state_dict()
@@ -477,13 +436,6 @@ def pred_graph(graph, args, checkpoint_dir, file_id):
             outgoing_edges = adj_matrices[s_idx, :]
             outgoing_nodes = np.where(outgoing_edges == 1)
             adj_matrices[outgoing_nodes, s_idx] = 1
-        
-        #TODO-GRG: Check this
-        #Now remove outgoing edges - otherwise this introduces cycles
-
-        #Mask outgoing edges that start from severity to other features
-        # adj_matrices[-4:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Severity classes
-        adj_matrices[-num_classes:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Disease classes
 
     masked_graph_path = os.path.join(checkpoint_dir, "graph_%s_masked_prediction.pdf" % (file_id))
     visualizeGraph(graph, adj_matrices, masked_graph_path)

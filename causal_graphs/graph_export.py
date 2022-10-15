@@ -129,12 +129,15 @@ def load_graph(filename):
     filename : str
                Path of the file that should be loaded.
     """
-    arr = np.load(filename)
+    # arr = np.load(filename)
+    arr = np.load(filename, allow_pickle=True)
     graph = CausalDAGDataset(adj_matrix=arr['adj_matrix'],
                              data_obs=arr['data_obs'],
                              data_int=arr['data_int'],
                              latents=arr['latents'] if 'latents' in arr else None,
-                             exclude_inters=arr['exclude_inters'] if 'exclude_inters' in arr else None)
+                             exclude_inters=arr['exclude_inters'] if 'exclude_inters' in arr else None,
+                             vars_list = arr['vars_list'], class_list = arr['class_list'], feature_type = arr['feature_type'].item()
+                             )
     return graph
 
 
