@@ -282,8 +282,9 @@ def main():
     # task = 'diabetes-t5' #'heart-disease-binary-t2' #'dermatology' #'heart-disease-binary'
     task = 'cifar-t1'
 
-    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_{task}_TrainUpsampledPatient (draw)"
-    causal_discovery_exp_dir = f"/home/grg/Research/ENCO/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient"
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_26_Acyclic_{task}_TrainUpsampledPatient (draw)"
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient"
+    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
 
     # set_seed()
 
