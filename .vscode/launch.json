@@ -1,0 +1,147 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+            ]
+        },
+        {
+            "name": "Python: Train (cifar)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                "--use_flow_model", //help='If True, a Deep Sigmoidal Flow will be used as model if'
+                // "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/diabetes-t5_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t2_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/diabetes-small3_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t2_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/cifar-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.1", //"0.0004", //"0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                // "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_diabetes-t5_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_diabetes-small3_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient",
+                "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_ModelBiomarkers-max_TrainUpsampledPatient",
+            ]
+        },
+        {
+            "name": "Python: Train",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                // "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/DiseaseModelBiomarkersGTabTrainUpsampledPatient-max.npz", //"DiseaseBiomarkersGTabTrainUpsampledPatient-max.npz", //"DiseaseBiomarkersGTabTrainUpsampledPatient-mean.npz", //"DiseaseBiomarkersGTabTrainPatient-mean.npz", //"DiseaseBiomarkersGTabTrain.npz", //"DiseaseBiomarkersGTabcTrain.npz", //"BiomarkersGTabcTrain.npz", //"BiomarkersGTTrain.npz", //"ModelBiomarkersTrain.npz", //"BiomarkersTrain.npz", //"Biomarkers.npz",
+                // "--graph_files", "datasets/diabetes-t5_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t2_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/diabetes-small3_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t2_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                "--graph_files", "datasets/heart-disease-binary-t2_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/heart-disease-t5_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/credit_card_fraud-size4_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/breast_cancer_wisconsin-t3_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/dermatology-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_Acyclic_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_Acyclic_GroundTruth_TrainValTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainValTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-mean_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-mean_GroundTruth_UpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-max_GroundTruth_UpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-max_GroundTruth_UpsampledTrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_24_Acyclic_DiseasePerPatient-max_modelContinousUpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_24_Acyclic_DiseasePerPatient-max_modelContinousUpsampledTrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_25_Acyclic_labor_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_parity5_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_heart-disease_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_heart-disease-binary_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_dermatology_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_ModelBiomarkers-max_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_diabetes-t5_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_diabetes-small3_TrainUpsampledPatient",
+                "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_heart-disease-binary-t2_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_heart-disease-t5_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_credit_card_fraud-size4_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_breast_cancer_wisconsin-t3_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_dermatology-t1_TrainUpsampledPatient",
+            ]
+        },
+        {
+            "name": "Python: Test",
+            "type": "python",
+            "request": "launch",
+            "program": "run_predictions_on_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                // "--graph_files", "datasets/DiseaseModelBiomarkersGTabTestUpsampledPatient-max.npz", //"DiseaseBiomarkersGTabTestUpsampledPatient-max.npz", //"DiseaseBiomarkersGTabTestUpsampledPatient-mean.npz", //"DiseaseBiomarkersGTabTestPatient-mean.npz", //"DiseaseBiomarkersGTabTest.npz", //"DiseaseBiomarkersGTabcTest.npz", //"BiomarkersGTabcTest.npz", //"BiomarkersGTTest.npz", //"ModelBiomarkersTest.npz", //"BiomarkersTest.npz",
+                // "--graph_files", "datasets/parity5_TestUpsampledPatient.npz", //"labor_TestUpsampledPatient.npz",
+                "--graph_files", "datasets/ModelBiomarkers-max_TestUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.6", //"0.4", //"0.01", //"0.05", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                "--batch_size", "16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_09_13__11_19_56",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_09_13__17_15_24",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_Acyclic_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_20_Acyclic_GroundTruth_TrainValTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainValTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_Disease_GroundTruth_TrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-mean_GroundTruth_TrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-mean_GroundTruth_UpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-max_GroundTruth_UpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-max_GroundTruth_UpsampledTrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_23_Acyclic_DiseasePerPatient-max_GroundTruth_UpsampledTrainTest_sparity0.0004",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_24_Acyclic_DiseasePerPatient-max_modelContinousUpsampledTrainTest",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_24_Acyclic_DiseasePerPatient-max_modelContinousUpsampledTrainTest_v1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_25_Acyclic_labor_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_parity5_TrainUpsampledPatient",
+                "--checkpoint_dir", "/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_ModelBiomarkers-max_TrainUpsampledPatient",
+            ]
+        }
+    ]
+}
