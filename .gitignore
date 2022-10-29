@@ -142,3 +142,6 @@ checkpoints/*
 checkpoints*
 datasets*
 ucl_dataset*
+dataset_*
+=2021.6.*
+credit_card_fraud_varying_size_exp.txt

@@ -19,6 +19,13 @@ import random
 
 
 
+# Runtime optimization of sklearn uisng Intel - Ref: https://github.com/intel/scikit-learn-intelex
+from sklearnex import patch_sklearn, config_context
+patch_sklearn()
+
+# with config_context(target_offload="gpu:0"):
+#     clustering = DBSCAN(eps=3, min_samples=2).fit(X)
+
 def set_seed(seed = 42):
     """
     Sets the seed for all libraries used.
@@ -31,6 +38,8 @@ def set_seed(seed = 42):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+    print(f"[Warning] Running with fixed seed ({seed})!")
 
 
 
@@ -98,71 +107,6 @@ def drawGraph(Graph, reports_path = ".", ):
             args='-Gnodesep=1.0 -Granksep=9.0 -Gfont_size=1', prog='dot' )  
 
 
-def getSamplingOrder(adj_matrix, variables, logger, results_dir, DRAW_GRAPH = False):
-
-
-    G = pd.DataFrame(adj_matrix, index = variables, columns = variables)
-    G = nx.from_pandas_adjacency(G, create_using=nx.DiGraph)
-    
-    #Draw graph
-
-    # DRAW_GRAPH = False
-    if DRAW_GRAPH:
-        # nx.draw_networkx(G)
-        # plt.savefig('Graph_temp.png')
-        # plt.show()
-        drawGraph(G, results_dir)
-
-    #Node degrees 
-    node_degrees = {}
-    for var in variables:
-        node_degrees[var]= G.degree[var]
-
-    #Node in-degrees 
-    node_in_degrees = {}
-    for var in variables:
-        node_in_degrees[var]= G.in_degree[var]
-
-    in_degree_sort_idx = np.argsort(list(node_in_degrees.values()))
-    ascending_in_degree_nodes =  np.array(variables.copy())[in_degree_sort_idx]
-
-    #Node out-degrees 
-    node_out_degrees = {}
-    for var in variables:
-        node_out_degrees[var]= G.out_degree[var]
-
-    out_degree_sort_idx = np.argsort(list(node_out_degrees.values()))
-    ascending_out_degree_nodes =  np.array(variables.copy())[out_degree_sort_idx]
-
-    #Node parents
-    node_parents = {}
-    for var in variables:
-        node_parents[var]= list(G.predecessors(var))
-
-    unconnected_nodes = [v for v,d in node_degrees.items() if d == 0]
-    logger.log(f"Unconnected nodes = {unconnected_nodes}")
-
-    root_nodes = [n for n,d in G.in_degree() if d == 0 and G.degree(n) != 0] 
-    logger.log(f"Root nodes = {root_nodes}")
-
-    # nx.ancestors(G, 'd0')
-
-    sorted_variables, edges, adj_matrix, sorted_idxs = sort_graph_by_vars(variables, adj_matrix = adj_matrix)
-
-    # sorted_variables = np.array(variables)[sorted_idxs]
-
-    # paths_dict = {}
-    # for node in G:
-    #     if G.out_degree(node)==0: #it's a leaf
-    #         paths_dict[node] = nx.shortest_path(G, root, node)
-
-    for var in sorted_variables:
-        logger.log(f"{var}: {node_parents[var]}")
-
-    return G, sorted_variables, node_parents, root_nodes, unconnected_nodes
-
-
-
 
 from sklearn import tree, svm, neighbors
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
@@ -170,7 +114,7 @@ from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, 
         label_classes, feature_type = '',
-        n_trial = 3, hidden_layer_sizes = (128, 64, 32), max_iter = 200, verbose = True):
+        n_trial = 3, hidden_layer_sizes = (128, 64, 32), max_iter = 200, verbose = True, USE_GPU = False):
 
     best_clf = None
     best_acc = -np.inf
@@ -196,7 +140,12 @@ def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores,
                 max_iter = max_iter,
                 verbose = verbose,
             )
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -236,14 +185,19 @@ def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores,
 
 
 
-def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = False):
 
     best_clf = None
     best_acc = -1
     for idx in range(n_trial):
 
         clf = RandomForestClassifier(n_estimators = 100) #The number of trees in the forest (default 100).
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -266,14 +220,19 @@ def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scor
 
 
 
-def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = False):
 
     best_clf = None
     best_acc = -1
     for idx in range(n_trial):
 
         clf = tree.DecisionTreeClassifier()
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -297,7 +256,7 @@ def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scor
 
 
 
-def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = False):
 
     best_clf = None
     best_acc = -1
@@ -305,7 +264,12 @@ def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label
 
         # clf = svm.SVC()
         clf = svm.SVC(probability = True) #Enable probability predictions
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -345,242 +309,6 @@ def predLargeMLP(clf, test_label_ft, label_classes, feature_type):
 
 
 
-#For saving & loading sklearn model - Ref: https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations
-from joblib import dump, load
-
-def train_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, category_classes, 
-            causal_feature_mapping, feature_type_dict, hidden_layer_sizes = (128, 64, 32), max_iter = 200, 
-            ADD_NOISE = False, reports_path = "."):
-
-    trained_models = {}
-
-    for var in sorted_variables:
-
-        if var in unconnected_nodes:
-            print(f"Skipping unconnected node {var}")
-
-            train_labels = train_data[:, causal_feature_mapping[var]]
-            train_label_classes = np.unique(train_labels)
-            trained_models[var] = {'label_class': train_label_classes}
-
-            continue
-        elif var in root_nodes:
-            print(f"Skipping root node {var}")
-
-            train_labels = train_data[:, causal_feature_mapping[var]]
-            train_label_classes = np.unique(train_labels)
-            trained_models[var] = {'label_class': train_label_classes}
-
-            continue
-
-        parents = node_parents[var]
-        print(f"Train for node {var} with parents {parents}")
-
-
-        parents_idx = [causal_feature_mapping[v] for v in parents]
-
-        train_sub_features = train_data[:, parents_idx]
-
-        # train_labels = train_data[:, category_classes]
-        train_labels = train_data[:, causal_feature_mapping[var]]
-
-        train_label_classes = np.unique(train_labels)
-
-        if ADD_NOISE:
-            train_sub_features = train_sub_features + rng.normal(0, 0.01, train_sub_features.shape)
-
-        ##Train model
-        model, accuracy, ml_predictions, ml_prob_predictions = fitLargeMLP(
-                                    train_label_ft =  train_sub_features, 
-                                    test_label_ft = train_sub_features, 
-                                    gt_train_scores = train_labels, gt_test_scores = train_labels, 
-                                    label_classes = train_label_classes,
-                                    feature_type = feature_type_dict[var],
-                                    n_trial = 3,
-                                    # hidden_layer_sizes = (128, 64, 32),
-                                    hidden_layer_sizes = hidden_layer_sizes,
-                                    max_iter = max_iter,
-                                    verbose = False
-                                )
-
-        #Train model
-
-        #Save trained model
-        dump(model, os.path.join(reports_path, f"Gen_ML_Model_var_{var}.joblib")) 
-
-        trained_models[var] = {'model': model, 'label_class': train_label_classes}
-
-    return trained_models
-
-
-
-def load_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, 
-            causal_feature_mapping, reports_path = "."):
-
-    trained_models = {}
-
-    for var in sorted_variables:
-
-        if var in unconnected_nodes:
-            print(f"Skipping unconnected node {var}")
-
-            train_labels = train_data[:, causal_feature_mapping[var]]
-            train_label_classes = np.unique(train_labels)
-            trained_models[var] = {'label_class': train_label_classes}
-
-            continue
-        elif var in root_nodes:
-            print(f"Skipping root node {var}")
-
-            train_labels = train_data[:, causal_feature_mapping[var]]
-            train_label_classes = np.unique(train_labels)
-            trained_models[var] = {'label_class': train_label_classes}
-
-            continue
-
-        parents = node_parents[var]
-        print(f"Load model for node {var} with parents {parents}")
-
-
-        #Save trained model
-        model = load(os.path.join(reports_path, f"Gen_ML_Model_var_{var}.joblib")) 
-
-        trained_models[var] = {'model': model, 'label_class': train_label_classes}
-
-    return trained_models
-
-
-
-#Numpy new way to sample from distributions: Ref: https://numpy.org/doc/stable/reference/random/index.html#random-quick-start
-from numpy.random import default_rng
-rng = default_rng()
-
-def generateNewData(trained_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-            category_classes, feature_type_dict, num_samples = 1000):
-
-    generated_data_dict = {} 
-
-    for var in sorted_variables:
-
-        feature_type = feature_type_dict[var]
-
-        if var in unconnected_nodes:
-            print(f"Generating unconnected node {var}")
-
-            # if feature_type == "binary":
-            #     sampled_var = rng.binomial(n = 1, p = 0.5, size = num_samples)
-
-            # elif feature_type == "categorical":
-
-            #     model_dict = trained_models[var]
-            #     label_class = model_dict['label_class']
-
-            #     sampled_var = rng.choice(label_class, size = num_samples)
-
-            # elif feature_type == "continous":
-                
-            #     sampled_var = rng.uniform(low = 0, high = 1, size = num_samples)
-
-            # else:
-            #     raise Exception(F"Error! Unsupported feature type = {feature_type}")
-
-            sampled_var = np.zeros(num_samples)
-            print(f"Sampling constant zero for unconnected node {var}")
-
-            sampled_var = sampled_var[:, np.newaxis]
-            generated_data_dict[var] = sampled_var
-
-            continue
-
-        elif var in root_nodes:
-            print(f"Generating root node {var}")
-
-            if feature_type == "binary":
-                sampled_var = rng.binomial(n = 1, p = 0.5, size = num_samples)
-            
-            elif feature_type == "binary-class":
-                # sampled_var = rng.binomial(n = 1, p = 0.5, size = num_samples)
-                sampled_var = rng.uniform(low = 0, high = 1, size = num_samples)
-                print(f"Error! Class var {var} in root node.")
-            
-            elif feature_type == "categorical":
-
-                model_dict = trained_models[var]
-                label_class = model_dict['label_class']
-
-                sampled_var = rng.choice(label_class, size = num_samples)
-
-            elif feature_type == "continous":
-                
-                sampled_var = rng.uniform(low = 0, high = 1, size = num_samples)
-
-            else:
-                raise Exception(F"Error! Unsupported feature type = {feature_type}")
-
-            sampled_var = sampled_var[:, np.newaxis]
-            generated_data_dict[var] = sampled_var
-        
-            continue
-
-        parents = node_parents[var]
-        print(f"Generating data for node {var} with parents {parents}")
-
-        
-        # test_features = np.array([generated_data[p] for p in parents]).T
-        test_features = np.hstack([generated_data_dict[p] for p in parents])
-        print(f'test_featurs.shape = {test_features.shape}')
-
-        ##Eval model
-
-        model_dict = trained_models[var]
-
-        model = model_dict['model']
-        label_class = model_dict['label_class']
-
-        model, ml_predictions, ml_prob_predictions = predLargeMLP(model, test_features, label_class, feature_type)
-
-        
-        if feature_type == "binary":
-
-            sampled_var = ml_predictions
-
-        elif feature_type == "binary-class":
-            
-            # if len(category_classes) == 2:
-            #     sampled_var = ml_predictions
-            # else:
-            #     assert ml_prob_predictions.shape[1] == 2, "Error! Prob pred dim should be 2 (binary)."
-            #     sampled_var = ml_prob_predictions[:,1]
-
-            assert ml_prob_predictions.shape[1] == 2, "Error! Prob pred dim should be 2 (binary)."
-            sampled_var = ml_prob_predictions[:,1]
-
-        elif feature_type == "categorical":
-
-            sampled_var = ml_predictions
-
-        elif feature_type == "continous":
-
-            sampled_var = ml_prob_predictions
-
-            # sampled_var = sampled_var.argmax(1)
-
-        else:
-            raise Exception(F"Error! Unsupported feature type = {feature_type}")
-
-
-        sampled_var = sampled_var[:, np.newaxis]
-
-        generated_data_dict[var] = sampled_var
-
-    
-    generated_data = np.hstack([generated_data_dict[v] for v in variables])
-
-    return generated_data
-
-
-
-
 
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report, confusion_matrix, average_precision_score, multilabel_confusion_matrix
 from scipy.special import softmax
@@ -602,7 +330,9 @@ def calScores(preds, prob_preds, targets, class_names, task, logger, binary_cros
     # confusionMatrix = confusion_matrix(targets, preds, labels = labels)
     
     if binary_cross_entropy or skip_auc:
-        auc = "-"
+        # auc = "-"
+        assert np.all(np.isclose(np.unique(prob_preds.sum(1)),1)), "Error! Probability does not sum to one."
+        auc = roc_auc_score(targets, prob_preds[:,1])
     else:
         auc = roc_auc_score(targets, prob_preds, average = "weighted", multi_class = "ovo") # multi_class = "ovr"
     precision = precision_score(targets, preds, average='weighted') #score-All average
@@ -681,39 +411,42 @@ def upsampleFeatures(labels, features):
 
 def main():
 
-    exp_name = "generateContinousSamples"
+    exp_name = "evaluateGeneratedSamples"
     
     # task = 'heart-disease' #'heart-disease-binary' #'heart-disease' #'parity5' #'labor'
-    task = 'cifar-t1'
+    # task = 'cifar-t1'
+    # task = 'higgs_small-t1'
+    task = 'higgs_small-size5'
 
-    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_{task}_TrainUpsampledPatient"
-    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    trial = 'marco_AuC_T2'
+
+    num_samples = 10000 #60000 #10000 #50 #200 #3000 #500 #1000
+
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    fake_data = f"{task}_TrainUpsampledPatient_size-{num_samples}"
+    fake_data_path = f"/home/grg/Research/ENCO-grg/dataset_higgs_small/gan_fake_data/{fake_data}.csv"
+
+
+
+    print(f"Evaluating {task} using fake data {fake_data}")
+
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_{task}_TrainUpsampledPatient_T1"
+    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_{task}_TrainUpsampledPatient_GAN"
 
     # set_seed()
-    ShouldTrain = False #True
-    load_model_dir = "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1/generateContinousSamples_50"
-
-    num_samples = 10000 #50 #200 #3000 #500 #1000
+    # set_seed(44)
+    set_seed(46)
+   
     # Binary_Features = False #True
     # features_type = 'continous' #categorical, binary, continous
 
-    ADD_NOISE = False #False
-
+   
     DRAW_GRAPH = False #False
     
-    causal_mlp_hidden_layer_sizes = (128, 64, 32) #(32, 16) #(128, 64, 32)
     max_iter = 200 #200
 
-    results_dir = os.path.join(causal_discovery_exp_dir, f"{exp_name}_{num_samples}")
+    results_dir = os.path.join(causal_discovery_exp_dir, f"{exp_name}_{num_samples}_{trial}")
     utils.createDirIfDoesntExists(results_dir)
-
-    acyclic_adj_matrix_path = f"binary_acyclic_matrix_001_{task}_TrainUpsampledPatient.npy"
-
-    acyclic_adj_matrix = np.load(os.path.join(causal_discovery_exp_dir, acyclic_adj_matrix_path))
-
-    print(f"acyclic_adj_matrix.shape = {acyclic_adj_matrix.shape}")
-
-    adj_matrix = acyclic_adj_matrix 
         
     ### Load training data
     
@@ -748,7 +481,6 @@ def main():
     binary_cross_entropy = num_classes == 2
 
     num_categs = 1 + train_data.max(axis=0) #Bug-Fix GRG: Max should be taken along num_samples axis not num_vars axis
-    assert len(num_categs) == adj_matrix.shape[0], "Error! Num categories does not match num of variables."
     new_categs_func = lambda i : num_categs[i]
 
 
@@ -773,72 +505,28 @@ def main():
 
 
 
-    ##Process adjacency matrix   
-
-    REVERSE_OUTGOING_CLASS_EDGES = True
-
-    if not REVERSE_OUTGOING_CLASS_EDGES:
-        #Mask outgoing edges that start from severity to other features
-        # adj_matrices[-4:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Severity classes
-        adj_matrix[-num_classes:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Disease classes
-    else:
-        #Reverse the edge direction of severity classes; convert outgoing edges to incoming edges 
-        # for s_idx in [38, 39, 40, 41]: #Severity classes
-        # for s_idx in [38, 39, 40, 41, 42, 43, 44]: #Disease classes
-        for s_idx in range(num_vars, num_vars+num_classes): #Disease classes
-            outgoing_edges = adj_matrix[s_idx, :]
-            outgoing_nodes = np.where(outgoing_edges == 1)
-            adj_matrix[outgoing_nodes, s_idx] = 1
-        
-        #TODO-GRG: Check this
-        #Now remove outgoing edges - otherwise this introduces cycles
-        
-        #Mask outgoing edges that start from severity to other features
-        # adj_matrices[-4:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Severity classes
-        adj_matrix[-num_classes:, :] = 0 #Rows represent outgoing edges and Columns represent incoming edges #Disease classes
-
-    # # TODO-GRG: Need to check if we need to transpose the adj_matrix or not!!!
-    # # Transpose for mask because adj[i,j] means that i->j
-    # mask_adj_matrices = adj_matrix.transpose(1, 2)
-
-    # variables = list(range(45))
-    # variables = list(vars_mapping.values())
-    variables = features_list
-
-    #Get sampling order
-    G, sorted_variables, node_parents, root_nodes, unconnected_nodes = getSamplingOrder(adj_matrix, variables, logger, results_dir, DRAW_GRAPH)
-
-
-    ### Train Generative Models
-
-    #TODO-GRG: Add noise while learning generator model
-    
-    if ShouldTrain:
-        trained_gen_models = train_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, 
-                            category_classes, causal_feature_mapping, feature_type_dict, 
-                            hidden_layer_sizes = causal_mlp_hidden_layer_sizes, 
-                            max_iter = max_iter,
-                            ADD_NOISE = ADD_NOISE,
-                            reports_path = results_dir)
-    else:
-        trained_gen_models = load_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, 
-                causal_feature_mapping, reports_path = load_model_dir) #results_dir)
-        
-    # num_samples = 500 #200 #3000 #500 #1000
-    # Binary_Features = False #True
-    # synthetic_data = generateNewData(trained_gen_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-    #         category_classes, feature_type_dict, num_samples)
-
-    # # large_sample_size = 100*num_samples
-    # # synthetic_data = generateNewData(trained_gen_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-    # #         category_classes, feature_type_dict, large_sample_size)
-
-    # # syn_classes, syn_class_count = np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)
-
-    # #Save the generated synthetic data
-    # np.save(os.path.join(results_dir, f"synthetic_data_{num_samples}.npy"), synthetic_data)
-
     ## Test the synthetic data
+
+
+    fake_dataset = np.genfromtxt(fake_data_path, delimiter=',')
+    fake_dataset = fake_dataset[1:] 
+    
+    fake_dataset_features = fake_dataset[:,:-1]
+    fake_dataset_labels = fake_dataset[:,-1]
+    
+    fake_dataset_binary_labels = np.zeros_like(fake_dataset_labels, dtype = int)
+    fake_dataset_binary_labels[fake_dataset_labels > 0.5] = 1
+    
+    fake_one_hot_labels = np.zeros((fake_dataset_binary_labels.shape[0], 2))
+    fake_one_hot_labels[np.arange(fake_dataset_binary_labels.shape[0]), fake_dataset_binary_labels] = 1
+
+    assert np.all(fake_one_hot_labels.argmax(1) == fake_dataset_binary_labels), "Error! One hot convertion incorrectly done"
+
+    large_synthetic_data = np.concatenate((fake_dataset_features, fake_one_hot_labels), axis = 1)
+    # assert synthetic_data.shape == train_data.shape, "Error! Synthetic data not correctly loaded."
+    assert large_synthetic_data.shape == (num_samples*100, train_data.shape[1]), "Error! Synthetic data not correctly loaded."
+
+
 
     print(f"train_data.shape = {train_data.shape}")
 
@@ -899,6 +587,8 @@ def main():
 
     logger.log(f"[MLPlarge] Val-Accuracy on original train set = {org_val_accuracy}")
 
+
+   
     syn_val_accuracy = -1
     best_syn_val_accuracy = -1
     num_tries = 0
@@ -911,13 +601,9 @@ def main():
 
         # re_generate = True
 
-        # while re_generate:
-        large_sample_size = 100*num_samples
-        synthetic_data = generateNewData(trained_gen_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-                category_classes, feature_type_dict, large_sample_size)
-
-        syn_labels = synthetic_data[:, category_classes].argmax(1)
+        syn_labels = large_synthetic_data[:, category_classes].argmax(1)
         syn_classes, syn_class_count = np.unique(syn_labels, return_counts = True)
+        print(f"[Pre-Downsampling] syn_classes, syn_class_count = {syn_classes, syn_class_count}")
 
         per_cls_sample = int(num_samples/len(syn_classes))
         c_idx_list = []
@@ -929,7 +615,7 @@ def main():
         if len(c_idx_list) < num_samples:
             c_idx_list.extend(c_idx[:num_samples - len(c_idx_list)])
 
-        synthetic_data = synthetic_data[c_idx_list]
+        synthetic_data = large_synthetic_data[c_idx_list]
         assert synthetic_data.shape[0] == num_samples, "Error! Selecting samples from a large batch failed."
 
         syn_classes, syn_class_count = np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)
@@ -962,7 +648,7 @@ def main():
             best_syn_val_accuracy = syn_val_accuracy
             best_synthetic_data = synthetic_data
 
-        if num_tries > 10:
+        if num_tries >= 5:
             break 
     
     synthetic_data = best_synthetic_data
@@ -972,6 +658,8 @@ def main():
 
 
     logger.log(f"only-synthetic class distn - {np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)}")
+
+    logger.log(f"syn_val_accuracy = {syn_val_accuracy} <= org_val_accuracy = {org_val_accuracy} : {syn_val_accuracy <= org_val_accuracy}")
 
 
     ### Evaluate the synthetic data on Test set
@@ -1130,21 +818,28 @@ def main():
         runOnlyOnSynthetic = True
         if runOnlyOnSynthetic:
             
-            rf_only_synthetic_model, rf_only_synthetic_accuracy, rf_only_synthetic_ml_predictions, rf_only_synthetic_ml_prob_predictions = fitRandomForest(
-                                        train_label_ft =  only_synthetic_train_features, test_label_ft = test_features, 
-                                        # gt_train_scores = synthetic_train_labels, gt_test_scores = test_labels, 
-                                        gt_train_scores = only_synthetic_train_labels.argmax(1), gt_test_scores = test_labels.argmax(1), 
-                                        label_classes = label_classes,
-                                        n_trial = 3
-                                    )
+            if len(syn_classes) == 1:
+                rf_only_synthetic_accuracy = -1
+                rf_only_synthetic_model_results_dict = {}
+                rf_only_synthetic_model_results_dict['auc'] = -1
+                logger.log(f"[RandomForest] Skipping due to mode collapse! syn_classes = {syn_classes}")
+                logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
+            else:
+                rf_only_synthetic_model, rf_only_synthetic_accuracy, rf_only_synthetic_ml_predictions, rf_only_synthetic_ml_prob_predictions = fitRandomForest(
+                                            train_label_ft =  only_synthetic_train_features, test_label_ft = test_features, 
+                                            # gt_train_scores = synthetic_train_labels, gt_test_scores = test_labels, 
+                                            gt_train_scores = only_synthetic_train_labels.argmax(1), gt_test_scores = test_labels.argmax(1), 
+                                            label_classes = label_classes,
+                                            n_trial = 3
+                                        )
 
-            logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
+                logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
 
-            # synthetic_model_results_dict = calScores(preds = synthetic_ml_predictions.argmax(1), prob_preds = torch.softmax(torch.Tensor(synthetic_ml_prob_predictions), dim = 1).numpy(), targets = test_labels.argmax(1), class_names = class_names, task = task+"-synthetic", logger = logger)
-            rf_only_synthetic_model_results_dict = calScores(preds = rf_only_synthetic_ml_predictions, prob_preds = torch.softmax(torch.Tensor(rf_only_synthetic_ml_prob_predictions), dim = 1).numpy(), 
-                        targets = test_labels.argmax(1), class_names = class_names, task = task+"-rf"+"-only_synthetic", logger = logger,
-                        binary_cross_entropy = binary_cross_entropy,
-                        skip_auc = True)
+                # synthetic_model_results_dict = calScores(preds = synthetic_ml_predictions.argmax(1), prob_preds = torch.softmax(torch.Tensor(synthetic_ml_prob_predictions), dim = 1).numpy(), targets = test_labels.argmax(1), class_names = class_names, task = task+"-synthetic", logger = logger)
+                rf_only_synthetic_model_results_dict = calScores(preds = rf_only_synthetic_ml_predictions, prob_preds = torch.softmax(torch.Tensor(rf_only_synthetic_ml_prob_predictions), dim = 1).numpy(), 
+                            targets = test_labels.argmax(1), class_names = class_names, task = task+"-rf"+"-only_synthetic", logger = logger,
+                            binary_cross_entropy = binary_cross_entropy,
+                            skip_auc = True)
 
 
 
@@ -1191,7 +886,14 @@ def main():
         runOnlyOnSynthetic = True
         if runOnlyOnSynthetic:
             
-            dt_only_synthetic_model, dt_only_synthetic_accuracy, dt_only_synthetic_ml_predictions, dt_only_synthetic_ml_prob_predictions = fitDecisionTree(
+            if len(syn_classes) == 1:
+                dt_only_synthetic_accuracy = -1
+                dt_only_synthetic_model_results_dict = {}
+                dt_only_synthetic_model_results_dict['auc'] = -1
+                logger.log(f"[DT] Skipping due to mode collapse! syn_classes = {syn_classes}")
+                logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
+            else:
+                dt_only_synthetic_model, dt_only_synthetic_accuracy, dt_only_synthetic_ml_predictions, dt_only_synthetic_ml_prob_predictions = fitDecisionTree(
                                         train_label_ft =  only_synthetic_train_features, test_label_ft = test_features, 
                                         # gt_train_scores = synthetic_train_labels, gt_test_scores = test_labels, 
                                         gt_train_scores = only_synthetic_train_labels.argmax(1), gt_test_scores = test_labels.argmax(1), 
@@ -1199,13 +901,13 @@ def main():
                                         n_trial = 3
                                     )
 
-            logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
+                logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
 
-            # synthetic_model_results_dict = calScores(preds = synthetic_ml_predictions.argmax(1), prob_preds = torch.softmax(torch.Tensor(synthetic_ml_prob_predictions), dim = 1).numpy(), targets = test_labels.argmax(1), class_names = class_names, task = task+"-synthetic", logger = logger)
-            dt_only_synthetic_model_results_dict = calScores(preds = dt_only_synthetic_ml_predictions, prob_preds = torch.softmax(torch.Tensor(dt_only_synthetic_ml_prob_predictions), dim = 1).numpy(), 
-                        targets = test_labels.argmax(1), class_names = class_names, task = task+"-svm"+"-only_synthetic", logger = logger,
-                        binary_cross_entropy = binary_cross_entropy,
-                        skip_auc = True)
+                # synthetic_model_results_dict = calScores(preds = synthetic_ml_predictions.argmax(1), prob_preds = torch.softmax(torch.Tensor(synthetic_ml_prob_predictions), dim = 1).numpy(), targets = test_labels.argmax(1), class_names = class_names, task = task+"-synthetic", logger = logger)
+                dt_only_synthetic_model_results_dict = calScores(preds = dt_only_synthetic_ml_predictions, prob_preds = torch.softmax(torch.Tensor(dt_only_synthetic_ml_prob_predictions), dim = 1).numpy(), 
+                            targets = test_labels.argmax(1), class_names = class_names, task = task+"-svm"+"-only_synthetic", logger = logger,
+                            binary_cross_entropy = binary_cross_entropy,
+                            skip_auc = True)
 
     ######### SVM ############
 
@@ -1270,7 +972,8 @@ def main():
 
 
 
-    logger.log(f"Task = {task}")
+    logger.log(f"Task = {task} | GAN")
+    logger.log(f"Trial = {trial}")
     logger.log(f"only-synthetic class distn - {np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)}")
     logger.log(f"[MLPlarge] Accuracy on original train set = {accuracy}")
     logger.log(f"[MLPlarge] Accuracy on only synthetic set = {only_synthetic_accuracy}")
@@ -1288,6 +991,28 @@ def main():
     logger.log(f"{accuracy} \n{rf_accuracy} \n{dt_accuracy} \n{only_synthetic_accuracy} \n{rf_only_synthetic_accuracy} \n{dt_only_synthetic_accuracy} \n{synthetic_accuracy} \n{rf_synthetic_accuracy} \n{dt_synthetic_accuracy}")
     
 
+
+    logger.log(f"*** AUC metric ***")
+    logger.log(f"Task = {task} | GAN")
+    logger.log(f"Trial = {trial}")
+    logger.log(f"only-synthetic class distn - {np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)}")
+    logger.log(f"[MLPlarge] Accuracy on original train set = {model_results_dict['auc']}")
+    logger.log(f"[MLPlarge] Accuracy on only synthetic set = {only_synthetic_model_results_dict['auc']}")
+    logger.log(f"[MLPlarge] Accuracy on synthetic + original train set = {synthetic_model_results_dict['auc']}")
+    logger.log(f"[RandomForest] Accuracy on original train set = {rf_model_results_dict['auc']}")
+    logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_model_results_dict['auc']}")
+    logger.log(f"[RandomForest] Accuracy on synthetic + original train set = {rf_synthetic_model_results_dict['auc']}")
+    logger.log(f"[DT] Accuracy on original train set = {dt_model_results_dict['auc']}")
+    logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_model_results_dict['auc']}")
+    logger.log(f"[DT] Accuracy on synthetic + original train set = {dt_synthetic_model_results_dict['auc']}")
+    # logger.log(f"[SVM] Accuracy on original train set = {svm_model_results_dict['auc']}")
+    # logger.log(f"[SVM] Accuracy on only synthetic set = {svm_only_synthetic_model_results_dict['auc']}")
+    # logger.log(f"[SVM] Accuracy on synthetic + original train set = {svm_synthetic_model_results_dict['auc']}")
+
+    logger.log(f"{model_results_dict['auc']} \n{rf_model_results_dict['auc']} \n{dt_model_results_dict['auc']} \n{only_synthetic_model_results_dict['auc']} \n{rf_only_synthetic_model_results_dict['auc']} \n{dt_only_synthetic_model_results_dict['auc']} \n{synthetic_model_results_dict['auc']} \n{rf_synthetic_model_results_dict['auc']} \n{dt_synthetic_model_results_dict['auc']}")
+    
+
+
     logger.close()
 
     pass
@@ -1302,10 +1027,13 @@ if __name__ == "__main__":
 
     synthetic_accuracy = -1
 
-    while synthetic_accuracy < .82:
-    # while synthetic_accuracy < .99:
-    # while synthetic_accuracy < .40:
-        accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
+    # while synthetic_accuracy < .82:
+    # # while synthetic_accuracy < .99:
+    # # while synthetic_accuracy < .40:
+    #     accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
+
+
+    accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
     
     
     print("Finished!")

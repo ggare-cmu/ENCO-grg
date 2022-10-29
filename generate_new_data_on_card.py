@@ -684,16 +684,19 @@ def main():
     exp_name = "generateContinousSamples"
     
     # task = 'heart-disease' #'heart-disease-binary' #'heart-disease' #'parity5' #'labor'
-    task = 'cifar-t1'
+    # task = 'cifar-t1'
+    task = 'credit_card_fraud-size4'
 
     # causal_discovery_exp_dir = f"/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_{task}_TrainUpsampledPatient"
-    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_{task}_TrainUpsampledPatient_T1"
+
 
     # set_seed()
-    ShouldTrain = False #True
-    load_model_dir = "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1/generateContinousSamples_50"
+    ShouldTrain = True #True
+    load_model_dir = "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_credit_card_fraud-size1_TrainUpsampledPatient_T1/generateContinousSamples_500"
 
-    num_samples = 10000 #50 #200 #3000 #500 #1000
+    num_samples = 5000 #10000 #50 #200 #3000 #500 #1000
     # Binary_Features = False #True
     # features_type = 'continous' #categorical, binary, continous
 
@@ -1091,7 +1094,7 @@ def main():
 
     ######### Random Forest ############
 
-    runRandomForest = True
+    runRandomForest = False
     if runRandomForest:
 
         ##Train model
@@ -1151,7 +1154,7 @@ def main():
 
     ######### DecisionTree ############
 
-    runDT = True
+    runDT = False
     if runDT:
 
         ##Train model
@@ -1275,17 +1278,17 @@ def main():
     logger.log(f"[MLPlarge] Accuracy on original train set = {accuracy}")
     logger.log(f"[MLPlarge] Accuracy on only synthetic set = {only_synthetic_accuracy}")
     logger.log(f"[MLPlarge] Accuracy on synthetic + original train set = {synthetic_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on original train set = {rf_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on synthetic + original train set = {rf_synthetic_accuracy}")
-    logger.log(f"[DT] Accuracy on original train set = {dt_accuracy}")
-    logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
-    logger.log(f"[DT] Accuracy on synthetic + original train set = {dt_synthetic_accuracy}")
-    # logger.log(f"[SVM] Accuracy on original train set = {svm_accuracy}")
-    # logger.log(f"[SVM] Accuracy on only synthetic set = {svm_only_synthetic_accuracy}")
-    # logger.log(f"[SVM] Accuracy on synthetic + original train set = {svm_synthetic_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on original train set = {rf_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on synthetic + original train set = {rf_synthetic_accuracy}")
+    # logger.log(f"[DT] Accuracy on original train set = {dt_accuracy}")
+    # logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
+    # logger.log(f"[DT] Accuracy on synthetic + original train set = {dt_synthetic_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on original train set = {svm_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on only synthetic set = {svm_only_synthetic_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on synthetic + original train set = {svm_synthetic_accuracy}")
 
-    logger.log(f"{accuracy} \n{rf_accuracy} \n{dt_accuracy} \n{only_synthetic_accuracy} \n{rf_only_synthetic_accuracy} \n{dt_only_synthetic_accuracy} \n{synthetic_accuracy} \n{rf_synthetic_accuracy} \n{dt_synthetic_accuracy}")
+    # logger.log(f"{accuracy} \n{rf_accuracy} \n{dt_accuracy} \n{only_synthetic_accuracy} \n{rf_only_synthetic_accuracy} \n{dt_only_synthetic_accuracy} \n{synthetic_accuracy} \n{rf_synthetic_accuracy} \n{dt_synthetic_accuracy}")
     
 
     logger.close()

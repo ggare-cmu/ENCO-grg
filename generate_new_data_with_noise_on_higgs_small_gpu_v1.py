@@ -19,6 +19,13 @@ import random
 
 
 
+# Runtime optimization of sklearn uisng Intel - Ref: https://github.com/intel/scikit-learn-intelex
+from sklearnex import patch_sklearn, config_context
+patch_sklearn()
+
+# with config_context(target_offload="gpu:0"):
+#     clustering = DBSCAN(eps=3, min_samples=2).fit(X)
+
 def set_seed(seed = 42):
     """
     Sets the seed for all libraries used.
@@ -31,6 +38,8 @@ def set_seed(seed = 42):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+    print(f"[Warning] Running with fixed seed ({seed})!")
 
 
 
@@ -170,7 +179,7 @@ from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, 
         label_classes, feature_type = '',
-        n_trial = 3, hidden_layer_sizes = (128, 64, 32), max_iter = 200, verbose = True):
+        n_trial = 3, hidden_layer_sizes = (128, 64, 32), max_iter = 200, verbose = True, USE_GPU = True):
 
     best_clf = None
     best_acc = -np.inf
@@ -196,7 +205,12 @@ def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores,
                 max_iter = max_iter,
                 verbose = verbose,
             )
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -236,14 +250,19 @@ def fitLargeMLP(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores,
 
 
 
-def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = True):
 
     best_clf = None
     best_acc = -1
     for idx in range(n_trial):
 
         clf = RandomForestClassifier(n_estimators = 100) #The number of trees in the forest (default 100).
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -266,14 +285,19 @@ def fitRandomForest(train_label_ft, test_label_ft, gt_train_scores, gt_test_scor
 
 
 
-def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = True):
 
     best_clf = None
     best_acc = -1
     for idx in range(n_trial):
 
         clf = tree.DecisionTreeClassifier()
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -297,7 +321,7 @@ def fitDecisionTree(train_label_ft, test_label_ft, gt_train_scores, gt_test_scor
 
 
 
-def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3):
+def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label_classes, n_trial = 3, USE_GPU = True):
 
     best_clf = None
     best_acc = -1
@@ -305,7 +329,12 @@ def fitSVM(train_label_ft, test_label_ft, gt_train_scores, gt_test_scores, label
 
         # clf = svm.SVC()
         clf = svm.SVC(probability = True) #Enable probability predictions
-        clf = clf.fit(train_label_ft, gt_train_scores)
+        
+        if USE_GPU:
+            with config_context(target_offload="gpu:0"):
+                clf = clf.fit(train_label_ft, gt_train_scores)
+        else:
+            clf = clf.fit(train_label_ft, gt_train_scores)
 
         ml_predictions = clf.predict(test_label_ft)
 
@@ -350,7 +379,7 @@ from joblib import dump, load
 
 def train_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, category_classes, 
             causal_feature_mapping, feature_type_dict, hidden_layer_sizes = (128, 64, 32), max_iter = 200, 
-            ADD_NOISE = False, reports_path = "."):
+            ADD_NOISE = False, ADD_NOISE_VAR = False, reports_path = "."):
 
     trained_models = {}
 
@@ -388,6 +417,13 @@ def train_generative_models(sorted_variables, node_parents, root_nodes, unconnec
 
         if ADD_NOISE:
             train_sub_features = train_sub_features + rng.normal(0, 0.01, train_sub_features.shape)
+
+        if ADD_NOISE_VAR:
+            noise = rng.normal(0.5, 0.5, train_sub_features.shape[0])
+            noise = (noise - noise.min())/(noise.max() - noise.min())
+            train_sub_features = np.concatenate((train_sub_features, noise[:, np.newaxis]), axis = 1)
+
+            assert train_sub_features.shape[1] == len(parents_idx) + 1, "Error! Noise Variable added incorrectly."
 
         ##Train model
         model, accuracy, ml_predictions, ml_prob_predictions = fitLargeMLP(
@@ -456,7 +492,7 @@ from numpy.random import default_rng
 rng = default_rng()
 
 def generateNewData(trained_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-            category_classes, feature_type_dict, num_samples = 1000):
+            category_classes, feature_type_dict, num_samples = 1000, ADD_NOISE_VAR = False):
 
     generated_data_dict = {} 
 
@@ -529,6 +565,15 @@ def generateNewData(trained_models, sorted_variables, variables, node_parents, r
         # test_features = np.array([generated_data[p] for p in parents]).T
         test_features = np.hstack([generated_data_dict[p] for p in parents])
         print(f'test_featurs.shape = {test_features.shape}')
+
+
+
+        if ADD_NOISE_VAR:
+            noise = rng.normal(0.5, 0.5, test_features.shape[0])
+            noise = (noise - noise.min())/(noise.max() - noise.min())
+            test_features = np.concatenate((test_features, noise[:, np.newaxis]), axis = 1)
+
+            assert test_features.shape[1] == len(parents) + 1, "Error! Noise Variable added incorrectly."
 
         ##Eval model
 
@@ -684,24 +729,29 @@ def main():
     exp_name = "generateContinousSamples"
     
     # task = 'heart-disease' #'heart-disease-binary' #'heart-disease' #'parity5' #'labor'
-    task = 'cifar-t1'
+    # task = 'cifar-t1'
+    # task = 'higgs_small-t1'
+    task = 'higgs_small-size4'
 
     # causal_discovery_exp_dir = f"/home/grg/Research/ENCO/checkpoints/2022_26_Acyclic_{task}_TrainUpsampledPatient"
-    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    # causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_{task}_TrainUpsampledPatient_T1"
+    causal_discovery_exp_dir = f"/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_{task}_TrainUpsampledPatient_T1"
 
-    # set_seed()
-    ShouldTrain = False #True
-    load_model_dir = "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1/generateContinousSamples_50"
 
-    num_samples = 10000 #50 #200 #3000 #500 #1000
+    set_seed()
+    ShouldTrain = True #True
+    load_model_dir = "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_higgs_small-t1_TrainUpsampledPatient_T1/generateContinousSamples_10000"
+
+    num_samples = 10000 #60000 #10000 #50 #200 #3000 #500 #1000
     # Binary_Features = False #True
     # features_type = 'continous' #categorical, binary, continous
 
     ADD_NOISE = False #False
+    ADD_NOISE_VAR = True #True
 
     DRAW_GRAPH = False #False
     
-    causal_mlp_hidden_layer_sizes = (128, 64, 32) #(32, 16) #(128, 64, 32)
+    causal_mlp_hidden_layer_sizes = (32, 16, 8) #(128, 64, 32) #(32, 16) #(128, 64, 32)
     max_iter = 200 #200
 
     results_dir = os.path.join(causal_discovery_exp_dir, f"{exp_name}_{num_samples}")
@@ -819,6 +869,7 @@ def main():
                             hidden_layer_sizes = causal_mlp_hidden_layer_sizes, 
                             max_iter = max_iter,
                             ADD_NOISE = ADD_NOISE,
+                            ADD_NOISE_VAR = ADD_NOISE_VAR,
                             reports_path = results_dir)
     else:
         trained_gen_models = load_generative_models(sorted_variables, node_parents, root_nodes, unconnected_nodes, train_data, 
@@ -914,10 +965,12 @@ def main():
         # while re_generate:
         large_sample_size = 100*num_samples
         synthetic_data = generateNewData(trained_gen_models, sorted_variables, variables, node_parents, root_nodes, unconnected_nodes, 
-                category_classes, feature_type_dict, large_sample_size)
+                category_classes, feature_type_dict, large_sample_size, 
+                ADD_NOISE_VAR = ADD_NOISE_VAR)
 
         syn_labels = synthetic_data[:, category_classes].argmax(1)
         syn_classes, syn_class_count = np.unique(syn_labels, return_counts = True)
+        print(f"[Pre-Downsampling] syn_classes, syn_class_count = {syn_classes, syn_class_count}")
 
         per_cls_sample = int(num_samples/len(syn_classes))
         c_idx_list = []
@@ -962,7 +1015,7 @@ def main():
             best_syn_val_accuracy = syn_val_accuracy
             best_synthetic_data = synthetic_data
 
-        if num_tries > 10:
+        if num_tries >= 1:
             break 
     
     synthetic_data = best_synthetic_data
@@ -972,6 +1025,8 @@ def main():
 
 
     logger.log(f"only-synthetic class distn - {np.unique(synthetic_data[:, category_classes].argmax(1), return_counts = True)}")
+
+    logger.log(f"syn_val_accuracy = {syn_val_accuracy} <= org_val_accuracy = {org_val_accuracy} : {syn_val_accuracy <= org_val_accuracy}")
 
 
     ### Evaluate the synthetic data on Test set
@@ -1091,7 +1146,7 @@ def main():
 
     ######### Random Forest ############
 
-    runRandomForest = True
+    runRandomForest = False
     if runRandomForest:
 
         ##Train model
@@ -1151,7 +1206,7 @@ def main():
 
     ######### DecisionTree ############
 
-    runDT = True
+    runDT = False
     if runDT:
 
         ##Train model
@@ -1275,17 +1330,17 @@ def main():
     logger.log(f"[MLPlarge] Accuracy on original train set = {accuracy}")
     logger.log(f"[MLPlarge] Accuracy on only synthetic set = {only_synthetic_accuracy}")
     logger.log(f"[MLPlarge] Accuracy on synthetic + original train set = {synthetic_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on original train set = {rf_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
-    logger.log(f"[RandomForest] Accuracy on synthetic + original train set = {rf_synthetic_accuracy}")
-    logger.log(f"[DT] Accuracy on original train set = {dt_accuracy}")
-    logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
-    logger.log(f"[DT] Accuracy on synthetic + original train set = {dt_synthetic_accuracy}")
-    # logger.log(f"[SVM] Accuracy on original train set = {svm_accuracy}")
-    # logger.log(f"[SVM] Accuracy on only synthetic set = {svm_only_synthetic_accuracy}")
-    # logger.log(f"[SVM] Accuracy on synthetic + original train set = {svm_synthetic_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on original train set = {rf_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on only synthetic set = {rf_only_synthetic_accuracy}")
+    # logger.log(f"[RandomForest] Accuracy on synthetic + original train set = {rf_synthetic_accuracy}")
+    # logger.log(f"[DT] Accuracy on original train set = {dt_accuracy}")
+    # logger.log(f"[DT] Accuracy on only synthetic set = {dt_only_synthetic_accuracy}")
+    # logger.log(f"[DT] Accuracy on synthetic + original train set = {dt_synthetic_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on original train set = {svm_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on only synthetic set = {svm_only_synthetic_accuracy}")
+    # # logger.log(f"[SVM] Accuracy on synthetic + original train set = {svm_synthetic_accuracy}")
 
-    logger.log(f"{accuracy} \n{rf_accuracy} \n{dt_accuracy} \n{only_synthetic_accuracy} \n{rf_only_synthetic_accuracy} \n{dt_only_synthetic_accuracy} \n{synthetic_accuracy} \n{rf_synthetic_accuracy} \n{dt_synthetic_accuracy}")
+    # logger.log(f"{accuracy} \n{rf_accuracy} \n{dt_accuracy} \n{only_synthetic_accuracy} \n{rf_only_synthetic_accuracy} \n{dt_only_synthetic_accuracy} \n{synthetic_accuracy} \n{rf_synthetic_accuracy} \n{dt_synthetic_accuracy}")
     
 
     logger.close()
@@ -1302,10 +1357,13 @@ if __name__ == "__main__":
 
     synthetic_accuracy = -1
 
-    while synthetic_accuracy < .82:
-    # while synthetic_accuracy < .99:
-    # while synthetic_accuracy < .40:
-        accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
+    # while synthetic_accuracy < .82:
+    # # while synthetic_accuracy < .99:
+    # # while synthetic_accuracy < .40:
+    #     accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
+
+
+    accuracy, only_synthetic_accuracy, synthetic_accuracy = main()
     
     
     print("Finished!")

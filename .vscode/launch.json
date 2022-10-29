@@ -51,6 +51,140 @@
             ]
         },
         {
+            "name": "Python: Train (higgs-small)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "42", //"43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                "--use_flow_model", //help='If True, a Deep Sigmoidal Flow will be used as model if'
+                "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/cifar-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/higgs-small-t1_TrainUpsampledPatient.npz", 
+                "--graph_files", "datasets/higgs_small-size1_TrainUpsampledPatient.npz", 
+                // "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.1", //"0.0004", //"0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                // "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"2", //"32", //"16", //"32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_higgs-small-t1_TrainUpsampledPatient_T1",
+                "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_higgs_small-size1_TrainUpsampledPatient_T1",
+            ]
+        },
+        {
+            "name": "Python: Train (tab-ddpm higgs-small)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                "--use_flow_model", //help='If True, a Deep Sigmoidal Flow will be used as model if'
+                "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/cifar-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                "--graph_files", "datasets/tab-ddpm-higgs-small-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.1", //"0.0004", //"0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                // "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"16", //"32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1",
+                "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_tab-ddpm-higgs-small-t1_TrainUpsampledPatient_T1",
+            ]
+        },
+        {
+            "name": "Python: Train (card)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                "--use_flow_model", //help='If True, a Deep Sigmoidal Flow will be used as model if'
+                "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/cifar-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                "--graph_files", "datasets/credit_card_fraud-size0_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.1", //"0.0004", //"0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                // "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"16", //"32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1",
+                "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_credit_card_fraud-size0_TrainUpsampledPatient_T1",
+            ]
+        },
+        {
+            "name": "Python: Train (diabetes)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_exported_graphs_grg.py", //"${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+
+                "--seed", "43", //"14", //"7", //"14", //"43", //"44", //"42",
+
+                "--apply_adj_matrix_mask", //#GRG
+                
+                "--use_flow_model", //help='If True, a Deep Sigmoidal Flow will be used as model if'
+                // "--sample_size_obs", "500000", //"5000",
+                // "--num_epochs", "5", //"30",
+                
+                // "--graph_files", "datasets/cifar-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                "--graph_files", "datasets/diabetes-t1_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary-t1_TrainUpsampledPatient.npz", //"datasets/dermatology_TrainUpsampledPatient.npz", //"datasets/heart-disease-binary_TrainUpsampledPatient.npz", //"heart-disease_TrainUpsampledPatient.npz", //"parity5_TrainUpsampledPatient.npz", //"labor_TrainUpsampledPatient.npz",
+                // "--graph_files", "datasets/ModelBiomarkers-max_TrainUpsampledPatient.npz", 
+                "--max_inters", "1", //"10", //"0", //"-1",
+                "--lambda_sparse", "0.01", //"0.0004", //"0.004", //"0.05", //"0.1", //"0.0001", //"0.1", //"0.4", //"0.01", //"0.4", //"0.125", //"0.1", //"0.0001", //"0.0004", //"0.01", //"0.01", //"0.04", //"0.4", //"0.004",
+                // "--lr_model", "1e-2", //"3e-2", //"1e-2", //"5e-3", //hear-disease-binary lr_model = "1e-2"
+                // "--lr_gamma", "2e-6", //"5e-3", //"2e-2",
+                // "--lr_theta", "1e-6", //"2e-2", //"1e-1",
+                // "--num_epochs", "10", //"30",
+                "--save_model",
+                "--batch_size", "32", //"16", //"32", //"32", //"16", //"64", //"16", //"32", //"64", //"128",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient",
+                // "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_4_Acyclic_cifar-t1_TrainUpsampledPatient_T1",
+                "--checkpoint_dir", "/home/grg/Research/ENCO-grg/checkpoints/2022_10_22_Acyclic_diabetes-t1_TrainUpsampledPatient_T1",
+            ]
+        },
+        {
             "name": "Python: Train",
             "type": "python",
             "request": "launch",

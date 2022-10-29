@@ -18,106 +18,38 @@ import uci_dataset
 
 from sklearn.model_selection import train_test_split
 
+from scipy.io import arff
 
 
+def getClassificationData(classification_dataset):
 
-def getClassificationData(classification_dataset, plml_dataset = True):
+    if classification_dataset == "higgs_small":
 
-    if plml_dataset:
-        # classification_dataset = "labor" #"diabetes" #"diabetes" #"breast_cancer_wisconsin"
-        assert classification_dataset in classification_dataset_names, f"Error! Dataset {classification_dataset} not in PMLB datasets"
+        data = arff.loadarff('/home/grg/Research/ENCO-grg/dataset_higgs_small/higgs_small.arff')
+        data_pd = pd.DataFrame(data[0])
+        
+        #Convert class names from string to int
+        diagnosis_names = data_pd['class'].unique()
+        
+        diagnosis_names.sort()
 
-        X, y = fetch_data(classification_dataset, return_X_y=True)
+        # diagnosis_names = np.unique(data[:,-1])
+        diagnosis_names_dict = dict(zip(diagnosis_names, range(len(diagnosis_names))))
+        data_pd = data_pd.replace(diagnosis_names_dict)
 
-    else:
+        data = data_pd.to_numpy()
 
-        if classification_dataset == "heart-disease":
-            data_path = "/home/grg/Research/ENCO/ucl_dataset/processed.cleveland.data"
-            data = np.genfromtxt(data_path, delimiter=',')
+        #Remove missing field rows
+        mis_x, mis_y = np.where(np.isnan(data))
+        data = np.delete(data, mis_x, axis = 0)
+        assert not np.any(np.isnan(data)), "Error! Data still has missing values."
 
-            #Remove missing field rows
-            mis_x, mis_y = np.where(np.isnan(data))
-            data = np.delete(data, mis_x, axis = 0)
-            assert not np.any(np.isnan(data)), "Error! Data still has missing values."
 
-            data = data.astype(int)
+        X, y = data[:, 1:], data[:, 0]
 
-            X, y = data[:, :-1], data[:, -1]
+        assert X.shape[1]+1 == data.shape[1], "Error! Data-label split not correctly done."
 
-        elif classification_dataset == "heart-disease-binary":
-            data_path = "/home/grg/Research/ENCO/ucl_dataset/processed.cleveland.data"
-            data = np.genfromtxt(data_path, delimiter=',')
-
-            #Remove missing field rows
-            mis_x, mis_y = np.where(np.isnan(data))
-            data = np.delete(data, mis_x, axis = 0)
-            assert not np.any(np.isnan(data)), "Error! Data still has missing values."
-
-            data = data.astype(int)
-
-            X, y = data[:, :-1], data[:, -1]
-
-            #covert to binary labels 0->0 ; {1,2,3,4} ->1
-            assert np.array_equal(np.unique(y), np.arange(5)), "Error! Wrong class labels."
-            y[y>=1] = 1
-            assert np.array_equal(np.unique(y), np.arange(2)), "Error! Wrong class labels."
-
-        elif classification_dataset == "cervical-cancer":
-            data_pd = uci_dataset.load_cervical_cancer()
-            data = data_pd.to_numpy()
-            #Remove missing field rows
-            mis_x, mis_y = np.where(np.isnan(data))
-            data = np.delete(data, mis_x, axis = 0)
-            assert not np.any(np.isnan(data)), "Error! Data still has missing values."
-
-            data = data.astype(int)
-
-            # X, y = data[:, :-1], data[:, -1]
             
-        elif classification_dataset == "dermatology":
-            data_pd = uci_dataset.load_dermatology()
-
-            #Convert class names from string to int
-            diagnosis_names = data_pd['class'].unique()
-            # diagnosis_names = np.unique(data[:,-1])
-            diagnosis_names_dict = dict(zip(diagnosis_names, range(len(diagnosis_names))))
-            data_pd = data_pd.replace(diagnosis_names_dict)
-
-            data = data_pd.to_numpy()
-
-            #Remove missing field rows
-            mis_x, mis_y = np.where(np.isnan(data))
-            data = np.delete(data, mis_x, axis = 0)
-            assert not np.any(np.isnan(data)), "Error! Data still has missing values."
-
-            data = data.astype(int)
-
-            X, y = data[:, :-1], data[:, -1]
-                
-        elif classification_dataset == "credit_card_fraud":
-            data_path = "/home/grg/Research/ENCO/ucl_dataset/credit_card_dataset/creditcard.csv"
-            # data = np.genfromtxt(data_path, delimiter=',')
-            data_pd = pd.read_csv(data_path)
-
-            data = data_pd.to_numpy()
-
-            #Remove missing field rows
-            mis_x, mis_y = np.where(np.isnan(data))
-            data = np.delete(data, mis_x, axis = 0)
-            assert not np.any(np.isnan(data)), "Error! Data still has missing values."
-
-            X, y = data[:, :-1], data[:, -1]
-            
-            # #Scale up the float valued features 
-            # # X[:, 1:-1] = X[:, 1:-1]*1000
-            # X[:, 1:-1] = X[:, 1:-1]*10.0
-            # #Change from negative to positive range
-            # X[:, 1:-1] = X[:, 1:-1] + (-1*X[:, 1:-1].min())
-            
-            # #Scale down the time int feature 
-            # X[:, 0] = X[:, 0]/100.0
-
-            # print(f"X features range = {X.mean(0)}")
 
     if np.array_equal(np.unique(y), [1, 2]):
         y[y==1] = 0
@@ -126,14 +58,16 @@ def getClassificationData(classification_dataset, plml_dataset = True):
     # if len(y.shape) == 1:
     #     y = y[:, np.newaxis]
 
+    assert np.array_equal(np.unique(y), [0, 1]), "Error! Label format incorrect."
+    y = y.astype(int)
+
     class_names = np.unique(y)
     assert np.array_equal(class_names, np.arange(class_names.shape[0])), f"Error! Class names are incorrect : class_names = {class_names}"
 
     num_classes = len(class_names)
 
     y_one_hot = np.zeros((y.shape[0], num_classes))
-    # y_one_hot[np.arange(y.shape[0]), y] = 1
-    y_one_hot[np.arange(y.shape[0]), y.astype(int)] = 1
+    y_one_hot[np.arange(y.shape[0]), y] = 1
 
     assert np.all(y_one_hot.argmax(1) == y), "Error! One hot convertion incorrectly done"
     
@@ -158,24 +92,23 @@ def getClassificationData(classification_dataset, plml_dataset = True):
         
         var_unique = np.unique(x).tolist()
         
-        if var_unique == [0,1]:
-            var_type = 'binary'
-        elif len(var_unique) <= 20:
-            var_type = 'categorical'
-        elif min(var_unique) == 0 and max(var_unique) == 1:
-            var_type = 'continous'
-        else:
-            var_type = 'continous'
+        # if var_unique == [0,1]:
+        #     var_type = 'binary'
+        # elif len(var_unique) <= 20:
+        #     var_type = 'categorical'
+        # elif min(var_unique) == 0 and max(var_unique) == 1:
+        #     var_type = 'continous'
+        # else:
+        #     var_type = 'continous'
+
+
+        var_type = 'continous'
         
         # print(f"{var} feature type set as {var_type}; np.unique({var}) = {var_unique}")
         
         feature_type[var] = var_type
         feature_type[var+"_min"] = x_min
         feature_type[var+"_max"] = x_max
-
-        # x = (x - x.min())/(x.max() - x.min())
-
-
         
 
     for cls in class_list:
@@ -257,9 +190,18 @@ def upsampleFeatures(labels_one_hot, features):
 
 
 
-def saveData(classification_dataset, trial, train_ft, test_ft, val_ft, train_label, test_label, val_label, 
-            class_names, num_classes, vars_list, class_list, num_input_features, feature_type):
+def main():
+
+    ##PLML-Datasets
+    classification_dataset = "higgs_small" #"parity5" #"labor" #"diabetes" #"diabetes" #"breast_cancer_wisconsin"
     
+    ##UCI-Datasets
+    # classification_dataset = "heart-disease-binary" #"breast_cancer_wisconsin" #"dermatology" #"heart-disease" #"heart-disease-binary" #"diabetes" #"dermatology" #"heart-disease-binary" #"dermatology" #"cervical-cancer" #"ovarian-cancer" #"heart-disease-binary" #"heart-disease" 
+    trial = "t2"
+
+    train_ft, test_ft, val_ft, train_label, test_label, val_label, class_names, num_classes, vars_list, class_list, num_input_features, feature_type = getClassificationData(classification_dataset)
+
+
     upsampleTrainFeatures = True
     
     #Upsample train set for class balancing
@@ -313,7 +255,7 @@ def saveData(classification_dataset, trial, train_ft, test_ft, val_ft, train_lab
 
     data_int = np.zeros((test_biomarkers.shape[1], 1, test_biomarkers.shape[1]), dtype=data_type)
 
-    train_biomarkers_csv = np.concatenate((train_biomarkers[:,:-num_classes], train_biomarkers[:,-num_classes:].argmax(1)[:, np.newaxis]), axis = 1)
+    train_biomarkers_csv = np.concatenate((train_biomarkers[:,:-num_classes],train_biomarkers[:,-num_classes:].argmax(1)[:, np.newaxis]), axis = 1)
     np.savetxt(f"datasets/{classification_dataset}-{trial}_TrainUpsampledPatient.csv", train_biomarkers_csv, delimiter = ",")
 
 
@@ -328,87 +270,6 @@ def saveData(classification_dataset, trial, train_ft, test_ft, val_ft, train_lab
 
 
 
-
-def main():
-
-    ##PLML-Datasets
-    # classification_dataset = "parity5" #"labor" #"diabetes" #"diabetes" #"breast_cancer_wisconsin"
-    
-    ##UCI-Datasets
-    classification_dataset = "credit_card_fraud" #"dermatology" #"heart-disease-binary" #"dermatology" #"cervical-cancer" #"ovarian-cancer" #"heart-disease-binary" #"heart-disease" 
-    
-    # trial = "t-"
-
-    plml_dataset = False
-
-    train_ft, test_ft, val_ft, train_label, test_label, val_label, class_names, num_classes, vars_list, class_list, num_input_features, feature_type = getClassificationData(classification_dataset, plml_dataset)
-
-
-    dataset_size = train_ft.shape[0]
-
-    sub_dataset = [int(dataset_size/max(10**i, 1)) for i in range(5)]
-    sub_dataset.sort()
-
-    classes, count = np.unique(train_label.argmax(1), return_counts = True) 
-    print(f"Original Labels counts = {classes, count}")
-
-    class0_ids = np.where(train_label.argmax(1) == 0)[0].tolist()
-    class1_ids = np.where(train_label.argmax(1) == 1)[0].tolist()
-
-    num_class0_ids = len(class0_ids)
-    num_class1_ids = len(class1_ids)
-
-    sel_class0_ids = []
-    sel_class1_ids = []
-
-    for idx, size in enumerate(sub_dataset):
-        
-        cls_sz = int(size/2)
-
-        if len(class1_ids) >= cls_sz:
-        
-            #Select class-1 as its the minority class
-            cur_class1_ids = np.random.choice(class1_ids, cls_sz - len(sel_class1_ids), replace = False)
-            # [class1_ids.remove(i) for i in cur_class1_ids]
-            class1_ids = np.setdiff1d(class1_ids, cur_class1_ids).tolist()
-            sel_class1_ids.extend(cur_class1_ids)
-        
-        elif len(class1_ids) < cls_sz and len(class1_ids) > 0:
-            
-            sel_class1_ids.extend(class1_ids)
-            class1_ids = []
-        
-        elif len(class1_ids) == 0:
-            pass
-        else:
-            raise Exception(f"Error! Classes incorrectly selected.")
-
-        assert len(sel_class1_ids) + len(class1_ids) == num_class1_ids, "Error! Classes incorrectly selected."
-
-
-        #Select remaining samples from class-0 as its the majority class
-        cur_class0_ids = np.random.choice(class0_ids, size - len(sel_class1_ids) - len(sel_class0_ids), replace = False)
-        # [class0_ids.remove(i) for i in cur_class0_ids]
-        class0_ids = np.setdiff1d(class0_ids, cur_class0_ids).tolist()
-        sel_class0_ids.extend(cur_class0_ids)
-
-        assert len(sel_class0_ids) + len(class0_ids) == num_class0_ids, "Error! Classes incorrectly selected."
-
-
-        assert len(sel_class0_ids) + len(sel_class1_ids) == size, "Error! Classes incorrectly selected."
-
-        sel_ids = sel_class0_ids + sel_class1_ids
-
-        sel_train_ft = train_ft[sel_ids]
-        sel_train_label = train_label[sel_ids]
-
-        classes, count = np.unique(sel_train_label.argmax(1), return_counts = True) 
-        print(f"[Sel-{idx}] required size = {size} | Labels counts = {classes, count}")
-        assert count.tolist() == [len(sel_class0_ids), len(sel_class1_ids)], "Error! Classes incorrectly selected."
-
-        trial = f"size{idx}"
-        saveData(classification_dataset, trial, sel_train_ft, test_ft, val_ft, sel_train_label, test_label, val_label, 
-                class_names, num_classes, vars_list, class_list, num_input_features, feature_type)
 
 '''
 If your causal graph/dataset is specified in a .bif format as the real-world graphs, you can directly start an experiment on it using experiments/run_exported_graphs.py. The alternative format is a .npz file which contains a observational and interventional dataset. The file needs to contain the following keys:

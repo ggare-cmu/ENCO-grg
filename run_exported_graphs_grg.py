@@ -13,6 +13,7 @@ from experiments.utils import set_seed, get_basic_parser, test_graph
 
 # #For Debugging on GPU:
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+# print(f"[Warning] Running with CUDA_LAUNCH_BLOCKING set to 1!!!")
 
 if __name__ == '__main__':
     parser = get_basic_parser()
